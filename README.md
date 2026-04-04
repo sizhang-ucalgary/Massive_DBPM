@@ -17,29 +17,29 @@ Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT 
 ```text
 .
 ├── GC_and_MDL_GPU/             # High-performance GPU implementations
-│   ├── Bash/                   # Shell scripts for experiment automation
-│   ├── gc_compressor.py        # GPU-accelerated Graph Coloring pipeline
-│   ├── mdl_compressor.py       # GPU-accelerated MDL (AutoPart-GPU) miner
-│   ├── policy_generator.py     # Synthetic dataset generation engine
-│   ├── seandroid_policy_converter.py # Converter for SEAndroid datasets
-│   ├── dt_sklearn.py           # Decision Tree baseline
-│   ├── mlp_torch.py            # MLP/Deep Learning baseline
-│   ├── compare_methods_skewness.py # Comparison across distribution shifts
-│   ├── seandroid_dataset.pkl   # Processed SEAndroid policy data
-│   ├── visual_seandroid_synthetic_tables.py # Latex table generator
-│   └── visual_skewness_tikzpicture.py # PGFPlots visualization generator
+│   ├── Bash/                                   # Shell scripts for experiment automation
+│   ├── gc_compressor.py                        # GPU-accelerated Graph Coloring pipeline
+│   ├── mdl_compressor.py                       # GPU-accelerated MDL (AutoPart-GPU) miner
+│   ├── policy_generator.py                     # Synthetic dataset generation engine
+│   ├── seandroid_policy_converter.py           # Converter for SEAndroid datasets
+│   ├── dt_sklearn.py                           # Decision Tree baseline
+│   ├── mlp_torch.py                            # MLP/Deep Learning baseline
+│   ├── compare_methods_skewness.py             # Comparison across distribution shifts
+│   ├── seandroid_dataset.pkl                   # Processed SEAndroid policy data
+│   ├── visual_seandroid_synthetic_tables.py    # Latex table generator
+│   └── visual_skewness_tikzpicture.py          # PGFPlots visualization generator
 │
 └── GC_vs_MaxSAT/               # CPU-based benchmarking suite
-    ├── slurm/                  # Slurm workload manager scripts
-    ├── input/                  # Sample problem instances
-    ├── maxsat_solver.py        # Implementation of previous MaxSAT approach
-    ├── maxsat_data_analyzer.py # Analysis tools for MaxSAT experiments
-    ├── graph_coloring.py       # CPU-based heuristic GC alternatives
-    ├── gc_heuristic_analyzer.py# Heuristic comparison analyzer
-    ├── test_driver.py          # Experimental comparison driver
-    ├── dataset_generator.py    # Dataset generator for MaxSAT benchmarks
-    ├── config_dataset.json     # Configuration for dataset generation
-    └── cactus.tex              # Latex template for cactus plots
+    ├── slurm/                          # Slurm workload manager scripts
+    ├── input/                          # Sample problem instances
+    ├── maxsat_solver.py                # Implementation of previous MaxSAT approach
+    ├── maxsat_data_analyzer.py         # Analysis tools for MaxSAT experiments
+    ├── graph_coloring.py               # CPU-based heuristic GC alternatives
+    ├── gc_heuristic_analyzer.py        # Heuristic comparison analyzer
+    ├── test_driver.py                  # Experimental comparison driver
+    ├── dataset_generator.py            # Dataset generator for MaxSAT benchmarks
+    ├── config_dataset.json             # Configuration for dataset generation
+    └── cactus.tex                      # Latex template for cactus plots
 ```
 
 ---
@@ -128,7 +128,7 @@ Extract policies from the generated datasets using the GPU-accelerated pipelines
     python GC_and_MDL_GPU/mdl_compressor.py PolicyData/noise_policy_... PolicyData/original_policy_... --device gpu
     ```
 
-#### 3. MaxSAT vs. GC Comparison (RQ1)
+#### 3. MaxSAT vs. GC Comparison
 Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver using `.json` instances.
 ```bash
 # Usage: python test_driver.py solver_type method input_dir output_dir timeout
@@ -146,14 +146,16 @@ python GC_vs_MaxSAT/test_driver.py maxsat BE_NF_MD_LI GC_vs_MaxSAT/input/ Result
 
 #### 4. Batch Experiments (HPC)
 For large-scale sweeps (scalability, noise levels, skewness), use the provided automation scripts:
--   **Bash Scripts**: Located in `GC_and_MDL_GPU/Bash/` for synthetic and SEAndroid sweeps.
-    ```bash
-    ./GC_and_MDL_GPU/Bash/Run_Scalability.sh
-    ```
--   **Slurm Scripts**: Located in `GC_vs_MaxSAT/slurm/` for cluster job submission.
-    ```bash
-    sbatch GC_vs_MaxSAT/slurm/RS_N1000.slurm
-    ```
+-   **Bash Scripts** (`GC_and_MDL_GPU/Bash/`):
+    -   **Purpose**: Automates the end-to-end evaluation of the GPU-accelerated miners.
+    -   **Workflow**:
+        1.  `Generate_*.sh`: Invokes `policy_generator.py` to create batches of `.npy` datasets with varying parameters (e.g., scalability `n`, noise `pn`, or skewness `alpha`).
+        2.  `Run_*.sh`: Iterates through the generated datasets, executes the appropriate miner (`gc_compressor.py` or `mdl_compressor.py`), and parses the console output into a consolidated `.csv` file for statistical analysis.
+-   **Slurm Scripts** (`GC_vs_MaxSAT/slurm/`):
+    -   **Purpose**: Designed for batch execution on a high-performance cluster using the Slurm workload manager.
+    -   **Configuration**: Typically requests high-memory partitions (e.g., `--partition=bigmem` with `256gb` RAM) to handle large-scale graph construction for CPU benchmarks.
+    -   **Naming Convention**: `[Algorithm]_N[Size].slurm` (e.g., `RS_N1000.slurm`) runs a specific graph coloring heuristic on all problem instances of size $N=1000$.
+    -   **Execution**: Invokes `test_driver.py` to compare heuristics against MaxSAT baselines across multiple dataset sub-variants (e.g., varying domain counts $M$) within a single job.
 ---
 
 ## 📖 Citation
