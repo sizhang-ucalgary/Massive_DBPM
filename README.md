@@ -56,7 +56,7 @@ Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT 
     -   **CUDA Toolkit 12.9+**
 -   **Dependencies**:
     -   GPU: `cupy>=13.6.0`, `torch>=2.10.0`, `scikit-learn>=1.8.0`
-    -   CPU: `networkx>=3.4.2`, `numba>=0.62.1`, `numpy>=2.2.2`, `scipy>=1.15.1`
+    -   CPU: `networkx>=3.4.2`, `numba>=0.62.1`, `numpy>=2.2.2`, `scipy>=1.15.1`, `python-sat>=0.1.8.dev20`
 
 ---
 
