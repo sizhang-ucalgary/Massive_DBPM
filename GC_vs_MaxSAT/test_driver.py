@@ -50,7 +50,7 @@ def traversal_all_files(input_dir, output_dir, solver_type, method, seconds):
 
 ####################################################################################
 # Usage:
-# python3.10 test_driver.py solver_type method input_dir output_dir timeout
+# python3 test_driver.py solver_type method input_dir output_dir timeout
 # 
 # solver_type: maxsat, sergcp, or pargcp
 # method: 

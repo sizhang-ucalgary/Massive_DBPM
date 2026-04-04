@@ -172,6 +172,16 @@ def process_action_slice(a_idx, H_actual, mapping, n, ps, pn, mode_b):
 # Main Process
 # =============================================================================
 
+####################################################################################
+# Usage:
+# python3 seandroid_policy_converter.py n ps pn input [out_dir]
+# 
+# n: Target number of entities (e.g., 50000)
+# ps: Wildcard probability (e.g., 0.1)
+# pn: Noise probability (e.g., 0.05)
+# input: Path to seandroid_dataset.json or .pkl
+# out_dir: Optional output directory (default: 'Policy')
+####################################################################################
 def main():
     parser = argparse.ArgumentParser(description='SEAndroid Semi-Synthetic Policy Generator (Unified)')
     parser.add_argument('n', type=int, help='Target number of entities')

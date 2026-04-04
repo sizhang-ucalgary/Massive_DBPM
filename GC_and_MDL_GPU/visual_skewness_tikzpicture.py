@@ -208,6 +208,13 @@ def generate_tex(rows):
     return '\n'.join(lines)
 
 
+####################################################################################
+# Usage:
+# python3 visual_skewness_tikzpicture.py
+# 
+# Expects 'Results_Skewness.csv' in the current directory.
+# Generates 'Plot_Skewness.tex' (TikZ/pgfplots).
+####################################################################################
 def main():
     if not os.path.exists(file_path):
         print(f'Error: {file_path} not found in the current directory.')

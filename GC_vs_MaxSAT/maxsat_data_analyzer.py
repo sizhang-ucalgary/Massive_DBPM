@@ -82,9 +82,14 @@ def analyze_data(timeout, timelimit):
 
 
 
-#########################################################
-# python3.10 maxsat_data_analyzer.py rawdata 300 86400 
-#########################################################
+####################################################################################
+# Usage:
+# python3 maxsat_data_analyzer.py input_dir timeout timelimit
+# 
+# input_dir: Directory containing the JSON output from solvers
+# timeout: Timeout for each problem instance (e.g., 300)
+# timelimit: Overall time limit for the experiment (e.g., 86400)
+####################################################################################
 def main(argv):
     if len(argv) != 3:
         print("Usage: python3.10 maxsat_data_analyzer.py rawdata 300 86400")

@@ -515,6 +515,15 @@ def calculate_metrics(H, pi_arr, G_orig):
 # 5. MAIN
 # =============================================================================
 
+####################################################################################
+# Usage:
+# python3 gc_compressor.py partial_policy original_policy [--device {cpu,gpu}] [--verbose]
+# 
+# partial_policy: Path to the partial policy (.npy) - standard (int8) format
+# original_policy: Path to the original policy (.npy) for testing
+# --device: Execution mode, either 'cpu' or 'gpu' (default: 'gpu')
+# --verbose: Enable verbose progress output
+####################################################################################
 def main():
     parser = argparse.ArgumentParser(description='GC-based Policy Compressor (Fixed)')
     parser.add_argument('partial_policy', help='Partial policy (.npy)')

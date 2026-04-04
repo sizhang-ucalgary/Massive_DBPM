@@ -16,9 +16,14 @@ def handle_timeout(sig, frame):
 
 
 
-################################################################
-# python3.10 maxsat_solver.py data_file method 300
-################################################################
+####################################################################################
+# Usage:
+# python3 maxsat_solver.py data_file method timeout
+# 
+# data_file: Path to the JSON instance file
+# method: BE, BE_CC, BE_NF, BE_NF_LI, BE_NF_FM, BE_NF_MD, BE_NF_MD_LI
+# timeout: Relaxation time in seconds (e.g., 300)
+####################################################################################
 def main(argv):
     if len(argv) != 3:
         print("Usage: python3.10 maxsat_solver.py data_file method 300")

@@ -637,6 +637,15 @@ def calculate_metrics(H, pi_arr, G_orig):
 # 7. MAIN
 # =============================================================================
 
+####################################################################################
+# Usage:
+# python3 mdl_compressor.py noise_policy original_policy [--device {cpu,gpu}] [--verbose]
+# 
+# noise_policy: Path to the noise policy (.npy) - MUST be bit-packed (uint8)
+# original_policy: Path to the original policy (.npy) for testing
+# --device: Execution mode, either 'cpu' or 'gpu' (default: 'gpu')
+# --verbose: Enable verbose progress output
+####################################################################################
 def main():
     parser = argparse.ArgumentParser(description='MDL-based Policy Compressor')
     parser.add_argument('noise_policy', help='Noise policy (.npy)')

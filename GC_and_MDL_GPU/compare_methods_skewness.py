@@ -1,6 +1,14 @@
 import csv
 from collections import defaultdict
 
+####################################################################################
+# Usage:
+# python3 compare_methods_skewness.py
+# 
+# Expects 'Results_Skewness.csv' in the current directory.
+# Prints F1-score trends by alpha for different methods.
+####################################################################################
+
 # Data structures to store F1 scores grouped by method and alpha
 partial_data = defaultdict(lambda: defaultdict(list))
 noise_data = defaultdict(lambda: defaultdict(list))

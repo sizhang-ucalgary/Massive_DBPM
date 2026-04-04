@@ -209,6 +209,13 @@ def generate_tex(rows_sea, rows_syn):
 # Main
 # ---------------------------------------------------------------------------
 
+####################################################################################
+# Usage:
+# python3 visual_seandroid_synthetic_tables.py
+# 
+# Expects 'Results_SEAndroid.csv' and 'Results_Synthetic.csv' in the current directory.
+# Generates 'Tables_Results.tex' (LaTeX).
+####################################################################################
 def main():
     for path in [CSV_SEANDROID, CSV_SYNTHETIC]:
         if not os.path.exists(path):

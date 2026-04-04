@@ -18,9 +18,14 @@ def distinguish_characters(str1, str2):
 
 
 
-################################################################
-# python3.10 graph_coloring.py data_file method 300
-################################################################
+####################################################################################
+# Usage:
+# python3 graph_coloring.py data_file method timeout
+# 
+# data_file: Path to the JSON instance file
+# method: RS, LF, SL, RSI, LFI, SLI, CSB, CSD, SLF, GIS
+# timeout: Relaxation time in seconds (e.g., 300)
+####################################################################################
 def main(argv):
     if len(argv) != 3:
         print("Usage: python3.10 graph_coloring.py data_file method 300")

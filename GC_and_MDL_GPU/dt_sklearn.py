@@ -3,6 +3,14 @@ import argparse
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 
+####################################################################################
+# Usage:
+# python3 dt_sklearn.py input_policy original_policy [--random_state SEED]
+# 
+# input_policy: Path to the input policy (.npy)
+# original_policy: Path to the original policy (.npy) for testing
+# --random_state: Optional random seed for Decision Tree (default: 42)
+####################################################################################
 def main():
     parser = argparse.ArgumentParser(description="Decision Tree Policy Miner")
     parser.add_argument("input_policy", help="Path to input policy (.npy)")

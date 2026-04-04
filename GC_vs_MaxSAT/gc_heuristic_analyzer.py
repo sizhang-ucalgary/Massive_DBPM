@@ -43,9 +43,12 @@ def calculate_stats(solutions):  # Same as before
 
 
 
-##############################################
-# python3.10 gc_heuristic_analyzer.py rawdata_ps
-##############################################
+####################################################################################
+# Usage:
+# python3.10 gc_heuristic_analyzer.py input_dir
+# 
+# input_dir: Directory containing JSON output files from graph coloring solvers
+####################################################################################
 def main(argv):
     if len(argv) != 1:
         print("Usage: python3.10 gc_heuristic_analyzer.py rawdata_ps")

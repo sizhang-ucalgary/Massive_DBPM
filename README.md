@@ -16,23 +16,30 @@ Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT 
 
 ```text
 .
-├── GC_and_MDL_GPU/        # High-performance GPU implementations
-│   ├── Bash/                  # Shell scripts for experiment automation
-│   ├── gc_compressor.py       # GPU-accelerated Graph Coloring pipeline
-│   ├── mdl_compressor.py      # GPU-accelerated MDL (AutoPart-GPU) miner
-│   ├── policy_generator.py    # Synthetic dataset generation engine
-│   ├── dt_sklearn.py          # Decision Tree baseline
-│   ├── mlp_torch.py           # MLP/Deep Learning baseline
-│   ├── compare_*.py           # Comparative scripts for skewness
-│   ├── seandroid_dataset.pkl  # Processed SEAndroid policy data
-│   └── visual_*.py            # Scripts for generating paper visualizations
+├── GC_and_MDL_GPU/             # High-performance GPU implementations
+│   ├── Bash/                   # Shell scripts for experiment automation
+│   ├── gc_compressor.py        # GPU-accelerated Graph Coloring pipeline
+│   ├── mdl_compressor.py       # GPU-accelerated MDL (AutoPart-GPU) miner
+│   ├── policy_generator.py     # Synthetic dataset generation engine
+│   ├── seandroid_policy_converter.py # Converter for SEAndroid datasets
+│   ├── dt_sklearn.py           # Decision Tree baseline
+│   ├── mlp_torch.py            # MLP/Deep Learning baseline
+│   ├── compare_methods_skewness.py # Comparison across distribution shifts
+│   ├── seandroid_dataset.pkl   # Processed SEAndroid policy data
+│   ├── visual_seandroid_synthetic_tables.py # Latex table generator
+│   └── visual_skewness_tikzpicture.py # PGFPlots visualization generator
 │
-└── GC_vs_MaxSAT/          # CPU-based benchmarking suite
-    ├── slurm/                 # Slurm workload manager scripts
-    ├── maxsat_solver.py       # Implementation of previous MaxSAT approach
-    ├── graph_coloring.py      # CPU-based heuristic GC alternatives
-    ├── test_driver.py         # Experimental comparison driver
-    └── dataset_generator.py   # Dataset generator for MaxSAT benchmarks
+└── GC_vs_MaxSAT/               # CPU-based benchmarking suite
+    ├── slurm/                  # Slurm workload manager scripts
+    ├── input/                  # Sample problem instances
+    ├── maxsat_solver.py        # Implementation of previous MaxSAT approach
+    ├── maxsat_data_analyzer.py # Analysis tools for MaxSAT experiments
+    ├── graph_coloring.py       # CPU-based heuristic GC alternatives
+    ├── gc_heuristic_analyzer.py# Heuristic comparison analyzer
+    ├── test_driver.py          # Experimental comparison driver
+    ├── dataset_generator.py    # Dataset generator for MaxSAT benchmarks
+    ├── config_dataset.json     # Configuration for dataset generation
+    └── cactus.tex              # Latex template for cactus plots
 ```
 
 ---
@@ -76,12 +83,25 @@ Generate synthetic or SEAndroid-based access control tensors in `.npy` format.
 -   **Synthetic Data**:
     ```bash
     # Usage: python policy_generator.py k m n ps pn [--alpha ALPHA] [--dir DIR]
-    # pn=0 generates Mode A (int8) data; pn>0 generates Mode B (uint8 bit-packed) data
+    # 
+    # k: Number of actions
+    # m: Initial number of domains
+    # n: Number of entities
+    # ps: Wildcard probability
+    # pn: Noise probability (pn > 0 triggers bit-packed Mode B)
+    # --alpha: Dirichlet alpha for domain skewness (default: 1.0)
+    # --dir: Output directory (default: 'Policy')
     python GC_and_MDL_GPU/policy_generator.py 1 100 1000 0.3 0.0 --dir PolicyData
     ```
 -   **SEAndroid Data**:
     ```bash
     # Usage: python seandroid_policy_converter.py n ps pn input [out_dir]
+    # 
+    # n: Target number of entities (e.g., 50000)
+    # ps: Wildcard probability (e.g., 0.1)
+    # pn: Noise probability (e.g., 0.05)
+    # input: Path to seandroid_dataset.json or .pkl
+    # out_dir: Optional output directory (default: 'Policy')
     python GC_and_MDL_GPU/seandroid_policy_converter.py 3000 0.3 0.1 GC_and_MDL_GPU/seandroid_dataset.pkl PolicyData
     ```
 
@@ -89,12 +109,22 @@ Generate synthetic or SEAndroid-based access control tensors in `.npy` format.
 Extract policies from the generated datasets using the GPU-accelerated pipelines.
 -   **Clean Setting (Graph Coloring)**:
     ```bash
-    # Requires Mode A (int8) partial_policy file
+    # Usage: python gc_compressor.py partial_policy original_policy [--device {cpu,gpu}] [--verbose]
+    # 
+    # partial_policy: Path to the partial policy (.npy) - standard (int8) format
+    # original_policy: Path to the original policy (.npy) for testing
+    # --device: Execution mode, either 'cpu' or 'gpu' (default: 'gpu')
+    # --verbose: Enable verbose progress output
     python GC_and_MDL_GPU/gc_compressor.py PolicyData/partial_policy_... PolicyData/original_policy_... --device gpu
     ```
 -   **Noisy Setting (MDL)**:
     ```bash
-    # Requires Mode B (uint8 bit-packed) noise_policy file
+    # Usage: python mdl_compressor.py noise_policy original_policy [--device {cpu,gpu}] [--verbose]
+    # 
+    # noise_policy: Path to the noise policy (.npy) - MUST be bit-packed (uint8)
+    # original_policy: Path to the original policy (.npy) for testing
+    # --device: Execution mode, either 'cpu' or 'gpu' (default: 'gpu')
+    # --verbose: Enable verbose progress output
     python GC_and_MDL_GPU/mdl_compressor.py PolicyData/noise_policy_... PolicyData/original_policy_... --device gpu
     ```
 
@@ -102,6 +132,13 @@ Extract policies from the generated datasets using the GPU-accelerated pipelines
 Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver using `.json` instances.
 ```bash
 # Usage: python test_driver.py solver_type method input_dir output_dir timeout
+# 
+# solver_type: maxsat, sergcp, or pargcp
+# method: 
+#   - For maxsat:  BE, BE_CC, BE_NF, BE_NF_LI, BE_NF_FM, BE_NF_MD, BE_NF_MD_LI
+#   - For sergcp:  RS, LF, SL, RSI, LFI, SLI, CSB, CSD, SLF, GIS
+#   - For pargcp:  D1, D1-2GL
+#
 # Example: Compare RS heuristic against MaxSAT
 python GC_vs_MaxSAT/test_driver.py sergcp RS GC_vs_MaxSAT/input/ Results 300
 python GC_vs_MaxSAT/test_driver.py maxsat BE_NF_MD_LI GC_vs_MaxSAT/input/ Results 300
@@ -117,7 +154,6 @@ For large-scale sweeps (scalability, noise levels, skewness), use the provided a
     ```bash
     sbatch GC_vs_MaxSAT/slurm/RS_N1000.slurm
     ```
-
 ---
 
 ## 📖 Citation

@@ -95,9 +95,12 @@ def partial_matrix_from_summary_digraph(H, n, ps):
 
 
 
-########################################################
-# python3.10 dataset_generator.py config_dataset.json
-########################################################
+####################################################################################
+# Usage:
+# python3 dataset_generator.py config_file
+# 
+# config_file: Path to the JSON configuration file (e.g., config_dataset.json)
+####################################################################################
 def main(argv):
     if len(argv) != 1:
         print('Usage: python3.10 dataset_generator.py config_dataset.json')

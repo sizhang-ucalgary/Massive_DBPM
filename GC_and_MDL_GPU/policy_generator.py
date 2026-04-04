@@ -156,6 +156,18 @@ def process_action_slice(a_idx, H_actual, mapping, n, ps, pn, mode_b):
 
     return slice_data, int(total_noise), int(total_observed), int(total_wildcards)
 
+####################################################################################
+# Usage:
+# python3 policy_generator.py k m n ps pn [--alpha ALPHA] [--dir DIR]
+# 
+# k: Number of actions
+# m: Initial number of domains
+# n: Number of entities
+# ps: Wildcard probability
+# pn: Noise probability (pn > 0 triggers bit-packed Mode B)
+# --alpha: Dirichlet alpha for domain skewness (default: 1.0)
+# --dir: Output directory (default: 'Policy')
+####################################################################################
 def main():
     parser = argparse.ArgumentParser(description='Policy Generator')
     parser.add_argument('k', type=int, help='Number of actions')

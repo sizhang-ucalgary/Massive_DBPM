@@ -7,6 +7,16 @@ import torch.optim as optim
 from torch.utils.data import TensorDataset, DataLoader
 from sklearn.preprocessing import OneHotEncoder
 
+####################################################################################
+# Usage:
+# python3 mlp_torch.py input_policy original_policy [--epochs EPOCHS] [--batch_size SIZE] [--lr LR]
+# 
+# input_policy: Path to the input policy (.npy)
+# original_policy: Path to the original policy (.npy) for testing
+# --epochs: Number of training epochs (default: 10)
+# --batch_size: Training batch size (default: 256)
+# --lr: Learning rate (default: 1e-3)
+####################################################################################
 def main():
     parser = argparse.ArgumentParser(description="PyTorch MLP Policy Miner")
     parser.add_argument("input_policy", help="Path to input policy (.npy)")
