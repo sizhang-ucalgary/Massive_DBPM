@@ -1,4 +1,4 @@
-# Massive DBPM: Mining Domain-Based Policies from Massive and Noisy Access Logs
+# Mining Domain-Based Policies from Massive and Noisy Access Logs
 
 This repository contains the implementation and experimental evaluation of a high-performance framework for mining domain-based access control policies from large-scale and potentially noisy access logs.
 
@@ -7,7 +7,7 @@ Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT 
 ## 🚀 Key Contributions
 
 -   **Graph Coloring-Based Pipeline**: Reduces the clean setting DBPM problem to vertex coloring, leveraging GPU acceleration to handle large-scale access control tensors.
--   **MDL-Based Pipeline (AutoPart-GPU)**: Applies the Minimum Description Length (MDL) principle for the noisy setting, acting as a statistical regularizer to recover policy structures from imperfect logs.
+-   **MDL-Based Miner**: Applies the Minimum Description Length (MDL) principle for the noisy setting, acting as a statistical regularizer to recover policy structures from imperfect logs.
 -   **Extreme Scalability**: Aggressive GPU-parallelization eliminates computational bottlenecks, outperforming state-of-the-art MaxSAT and Machine Learning (Decision Trees, MLP) baselines.
 
 ---
@@ -16,23 +16,23 @@ Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT 
 
 ```text
 .
-├── GC_and_MDL_GPU/                     # High-performance GPU implementations
-│   ├── Bash/                           # Shell scripts for experiment automation
-│   ├── gc_compressor.py                # GPU-accelerated Graph Coloring pipeline
-│   ├── mdl_compressor.py               # GPU-accelerated MDL (AutoPart-GPU) miner
-│   ├── policy_generator.py             # Synthetic dataset generation engine
-│   ├── dt_sklearn.py                   # Decision Tree baseline
-│   ├── mlp_torch.py                    # MLP/Deep Learning baseline
-│   ├── compare_methods_skewness.py     # Comparative scripts for skewness
-│   ├── seandroid_dataset.pkl           # Processed SEAndroid policy data
-│   └── visual_*.py                     # Scripts for generating paper visualizations
+├── GC_and_MDL_GPU/        # High-performance GPU implementations
+│   ├── Bash/                  # Shell scripts for experiment automation
+│   ├── gc_compressor.py       # GPU-accelerated Graph Coloring pipeline
+│   ├── mdl_compressor.py      # GPU-accelerated MDL (AutoPart-GPU) miner
+│   ├── policy_generator.py    # Synthetic dataset generation engine
+│   ├── dt_sklearn.py          # Decision Tree baseline
+│   ├── mlp_torch.py           # MLP/Deep Learning baseline
+│   ├── compare_*.py           # Comparative scripts for skewness
+│   ├── seandroid_dataset.pkl  # Processed SEAndroid policy data
+│   └── visual_*.py            # Scripts for generating paper visualizations
 │
-└── GC_vs_MaxSAT/                       # CPU-based benchmarking suite
-    ├── slurm/                          # Slurm workload manager scripts
-    ├── maxsat_solver.py                # Implementation of previous MaxSAT approach
-    ├── graph_coloring.py               # CPU-based heuristic GC alternatives
-    ├── test_driver.py                  # RQ1 comparison driver
-    └── dataset_generator.py            # Dataset generator for MaxSAT benchmarks
+└── GC_vs_MaxSAT/          # CPU-based benchmarking suite
+    ├── slurm/                 # Slurm workload manager scripts
+    ├── maxsat_solver.py       # Implementation of previous MaxSAT approach
+    ├── graph_coloring.py      # CPU-based heuristic GC alternatives
+    ├── test_driver.py         # Experimental comparison driver
+    └── dataset_generator.py   # Dataset generator for MaxSAT benchmarks
 ```
 
 ---
