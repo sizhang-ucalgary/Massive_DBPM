@@ -49,8 +49,8 @@ This repository contains the implementation and experimental evaluation of a hig
 ### Prerequisites
 
 -   **Hardware**: 
-    -   Minimum: CUDA-capable GPU (Compute Capability 7.0+ recommended).
-    -   Recommended: NVIDIA H100 SXM (80 GB VRAM) for massive-scale instances.
+    -   Minimum: x86-64 compatible CPU (Intel/AMD) and CUDA-capable GPU (Compute Capability 7.0+ recommended).
+    -   Recommended: NVIDIA GPUs with at least 80 GB VRAM (e.g., H100) for massive-scale instances, and 256 GB system memory for CPU-intensive benchmarks.
 -   **Software**:
     -   **Python 3.10+**
     -   **CUDA Toolkit 12.9+**
@@ -65,11 +65,11 @@ This repository contains the implementation and experimental evaluation of a hig
 The evaluations reported in the paper were conducted across two high-performance computing (HPC) environments:
 
 ### 1. Baseline CPU Environment
--   **Hardware**: Intel 6148 CPU (2.4 GHz) with 256 GB of memory.
+-   **Hardware**: Standard x86-64 compatible CPU (e.g., Intel or AMD) with at least 256 GB of memory recommended.
 -   **Usage**: Benchmarking Sequential Graph Coloring and MaxSAT pipeline (§5.3). 
 
 ### 2. GPU Acceleration Environment
--   **Hardware**: Intel 8570 CPU (2.1 GHz) with 64 GB host memory and NVIDIA H100 SXM GPUs (80 GB VRAM).
+-   **Hardware**: Standard x86-64 compatible CPU with at least 64 GB host memory and NVIDIA GPUs (the evaluations in the paper utilized H100 SXM with 80 GB VRAM).
 -   **Usage**: Scalability, noise resilience, and distribution skewness experiments (§5.4, §5.5, §5.6).
 
 ---
