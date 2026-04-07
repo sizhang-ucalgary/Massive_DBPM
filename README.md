@@ -19,7 +19,7 @@ This repository contains the implementation and experimental evaluation of a hig
 ├── GC_and_MDL_GPU/             # High-performance GPU implementations
 │   ├── Bash/                                   # Shell scripts for experiment automation
 │   ├── gc_compressor.py                        # GPU-accelerated Graph Coloring pipeline
-│   ├── mdl_compressor.py                       # GPU-accelerated MDL (AutoPart-GPU) miner
+│   ├── mdl_compressor.py                       # GPU-accelerated MDL miner
 │   ├── policy_generator.py                     # Synthetic dataset generation engine
 │   ├── seandroid_policy_converter.py           # Converter for SEAndroid datasets
 │   ├── dt_sklearn.py                           # Decision Tree baseline
