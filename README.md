@@ -2,7 +2,7 @@
 
 This repository contains the implementation and experimental evaluation of a high-performance framework for mining domain-based access control policies from large-scale and potentially noisy access logs.
 
-In previous work, Domain-Based Policy Mining (DBPM), often based on MaxSAT solving, struggle with scalability. This project introduces two novel, GPU-accelerated pipelines that achieve orders of magnitude speedups while maintaining or improving prediction accuracy.
+[In previous work](https://doi.org/10.1145/3626232.3653265), Domain-Based Policy Mining (DBPM), often based on [MaxSAT solving](https://github.com/sizhang-ucalgary/DBPM_Experiment), struggle with scalability. This project introduces two novel, GPU-accelerated pipelines that achieve orders of magnitude speedups while maintaining or improving prediction accuracy.
 
 ## 🚀 Key Contributions
 
