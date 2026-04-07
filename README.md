@@ -2,7 +2,7 @@
 
 This repository contains the implementation and experimental evaluation of a high-performance framework for mining domain-based access control policies from large-scale and potentially noisy access logs.
 
-Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT solving, struggle with scalability. This project introduces two novel, GPU-accelerated pipelines that achieve orders of magnitude speedups while maintaining or improving prediction accuracy.
+In previous work, Domain-Based Policy Mining (DBPM), often based on MaxSAT solving, struggle with scalability. This project introduces two novel, GPU-accelerated pipelines that achieve orders of magnitude speedups while maintaining or improving prediction accuracy.
 
 ## 🚀 Key Contributions
 
@@ -30,7 +30,7 @@ Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT 
 │   └── visual_skewness_tikzpicture.py          # PGFPlots visualization generator
 │
 └── GC_vs_MaxSAT/               # CPU-based benchmarking suite
-    ├── slurm/                          # Slurm workload manager scripts
+    ├── slurm/                          # Slurm scripts for experiment automation
     ├── input/                          # Sample problem instances
     ├── maxsat_solver.py                # Implementation of previous MaxSAT approach
     ├── maxsat_data_analyzer.py         # Analysis tools for MaxSAT experiments
@@ -65,11 +65,11 @@ Traditional Domain-Based Policy Mining (DBPM) approaches, often based on MaxSAT 
 The evaluations reported in the paper were conducted across two high-performance computing (HPC) environments:
 
 ### 1. Baseline CPU Environment
--   **Hardware**: Intel 6148 CPU (2.4 GHz) with 3 TB of system memory.
--   **Usage**: Benchmarking against the MaxSAT pipeline (§5.3). Sequential GC experiments were allocated 256 GB of memory.
+-   **Hardware**: Intel 6148 CPU (2.4 GHz) with 256 GB of memory.
+-   **Usage**: Benchmarking Sequential Graph Coloring and MaxSAT pipeline (§5.3). 
 
 ### 2. GPU Acceleration Environment
--   **Hardware**: NVIDIA H100 SXM GPUs (80 GB VRAM) interconnected via NVLink, paired with Intel 8570 CPUs (2.1 GHz) and 64 GB host memory.
+-   **Hardware**: Intel 8570 CPU (2.1 GHz) with 64 GB host memory and NVIDIA H100 SXM GPUs (80 GB VRAM).
 -   **Usage**: Scalability, noise resilience, and distribution skewness experiments (§5.4, §5.5, §5.6).
 
 ---
@@ -133,11 +133,10 @@ Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver u
 ```bash
 # Usage: python test_driver.py solver_type method input_dir output_dir timeout
 # 
-# solver_type: maxsat, sergcp, or pargcp
+# solver_type: maxsat, sergcp
 # method: 
 #   - For maxsat:  BE, BE_CC, BE_NF, BE_NF_LI, BE_NF_FM, BE_NF_MD, BE_NF_MD_LI
 #   - For sergcp:  RS, LF, SL, RSI, LFI, SLI, CSB, CSD, SLF, GIS
-#   - For pargcp:  D1, D1-2GL
 #
 # Example: Compare RS heuristic against MaxSAT
 python GC_vs_MaxSAT/test_driver.py sergcp RS GC_vs_MaxSAT/input/ Results 300
