@@ -52,11 +52,10 @@ def traversal_all_files(input_dir, output_dir, solver_type, method, seconds):
 # Usage:
 # python3 test_driver.py solver_type method input_dir output_dir timeout
 # 
-# solver_type: maxsat, sergcp, or pargcp
+# solver_type: maxsat, sergcp
 # method: 
 #   - For maxsat:  BE, BE_CC, BE_NF, BE_NF_LI, BE_NF_FM, BE_NF_MD, BE_NF_MD_LI
 #   - For sergcp:  RS, LF, SL, RSI, LFI, SLI, CSB, CSD, SLF, GIS
-#   - For pargcp:  D1, D1-2GL
 ####################################################################################
 def main(argv):
     if len(argv) != 5:

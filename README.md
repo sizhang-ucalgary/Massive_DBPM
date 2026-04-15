@@ -30,16 +30,12 @@ This repository contains the implementation and experimental evaluation of a hig
 │   └── visual_skewness_tikzpicture.py          # PGFPlots visualization generator
 │
 └── GC_vs_MaxSAT/               # CPU-based benchmarking suite
-    ├── slurm/                          # Slurm scripts for experiment automation
-    ├── input/                          # Sample problem instances
-    ├── maxsat_solver.py                # Implementation of previous MaxSAT approach
-    ├── maxsat_data_analyzer.py         # Analysis tools for MaxSAT experiments
-    ├── graph_coloring.py               # CPU-based heuristic GC alternatives
-    ├── gc_heuristic_analyzer.py        # Heuristic comparison analyzer
+    ├── CODASPY2024_DBPM_Dataset/       # Primary benchmarking dataset
+    ├── Run_GC_MaxSAT.sh                # Automation script for reproduction
+    ├── rawdata_analyzer.py             # Script to aggregate results and generate CSV
     ├── test_driver.py                  # Experimental comparison driver
-    ├── dataset_generator.py            # Dataset generator for MaxSAT benchmarks
-    ├── config_dataset.json             # Configuration for dataset generation
-    └── cactus.tex                      # Latex template for cactus plots
+    ├── maxsat_solver.py                # CODASPY2024_DBPM_MaxSAT baseline implementation
+    └── graph_coloring.py               # CPU-based heuristic GC implementations
 ```
 
 ---
@@ -129,18 +125,16 @@ Extract policies from the generated datasets using the GPU-accelerated pipelines
     ```
 
 #### 3. MaxSAT vs. GC Comparison
-Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver using `.json` instances.
+Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver. This should be run as an **Interactive Job** on an HPC node to ensure sufficient memory (256GB).
+
 ```bash
-# Usage: python test_driver.py solver_type method input_dir output_dir timeout
-# 
-# solver_type: maxsat, sergcp
-# method: 
-#   - For maxsat:  BE, BE_CC, BE_NF, BE_NF_LI, BE_NF_FM, BE_NF_MD, BE_NF_MD_LI
-#   - For sergcp:  RS, LF, SL, RSI, LFI, SLI, CSB, CSD, SLF, GIS
-#
-# Example: Compare RS heuristic against MaxSAT
-python GC_vs_MaxSAT/test_driver.py sergcp RS GC_vs_MaxSAT/input/ Results 300
-python GC_vs_MaxSAT/test_driver.py maxsat BE_NF_MD_LI GC_vs_MaxSAT/input/ Results 300
+# 1. Request an interactive compute node
+salloc --time=5:00:00 --mem=256gb --nodes=1 --ntasks=1 --cpus-per-task=1
+
+# 2. Run the benchmarking suite (handles execution and plot generation)
+cd GC_vs_MaxSAT
+chmod +x Run_GC_MaxSAT.sh
+./Run_GC_MaxSAT.sh
 ```
 
 #### 4. Batch Experiments (HPC)
@@ -148,13 +142,12 @@ For large-scale sweeps (scalability, noise levels, skewness), use the provided a
 -   **Bash Scripts** (`GC_and_MDL_GPU/Bash/`):
     -   **Purpose**: Automates the end-to-end evaluation of the GPU-accelerated miners.
     -   **Workflow**:
-        1.  `Generate_*.sh`: Invokes `policy_generator.py` to create batches of `.npy` datasets with varying parameters (e.g., scalability `n`, noise `pn`, or skewness `alpha`).
-        2.  `Run_*.sh`: Iterates through the generated datasets, executes the appropriate miner (`gc_compressor.py` or `mdl_compressor.py`), and parses the console output into a consolidated `.csv` file for statistical analysis.
--   **Slurm Scripts** (`GC_vs_MaxSAT/slurm/`):
-    -   **Purpose**: Designed for batch execution on a high-performance cluster using the Slurm workload manager.
-    -   **Configuration**: Typically requests high-memory partitions (e.g., `--partition=bigmem` with `256gb` RAM) to handle large-scale graph construction for CPU benchmarks.
-    -   **Naming Convention**: `[Algorithm]_N[Size].slurm` (e.g., `RS_N1000.slurm`) runs a specific graph coloring heuristic on all problem instances of size $N=1000$.
-    -   **Execution**: Invokes `test_driver.py` to compare heuristics against MaxSAT baselines across multiple dataset sub-variants (e.g., varying domain counts $M$) within a single job.
+        1.  `Generate_*.sh`: Invokes `policy_generator.py` to create batches of `.npy` datasets.
+        2.  `Run_*.sh`: Iterates through datasets, executes miners, and parses output into `.csv` files.
+-   **Benchmarking Script** (`GC_vs_MaxSAT/Run_GC_MaxSAT.sh`):
+    -   **Purpose**: Automatically reproduces the comparative analysis for Figure 2.
+    -   **Execution**: Iterates through the `CODASPY2024_DBPM_Dataset`, executes all 11 solver configurations, and invokes `rawdata_analyzer.py`.
+    -   **Expected Output**: Tier-specific raw results in `raw_data/` and consolidated comparison CSVs in `output/` suitable for cactus plot generation.
 ---
 
 ## 📖 Citation
