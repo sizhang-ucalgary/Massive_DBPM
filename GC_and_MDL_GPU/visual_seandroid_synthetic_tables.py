@@ -30,36 +30,95 @@ def strip_dot(val):
     return str(val).rstrip('.')
 
 def load_csv(path):
-    """Return list of row-dicts from a CSV, skipping blank lines."""
+    """Return list of row-dicts from a CSV, normalized."""
     with open(path, newline='') as f:
-        return [r for r in csv.DictReader(f) if any(v.strip() for v in r.values())]
+        rows = [r for r in csv.DictReader(f) if any(v.strip() for v in r.values())]
+    
+    # Normalize 'complexity' to 'domains'
+    for r in rows:
+        if 'complexity' in r:
+            r['domains'] = r['complexity']
+        # Normalize types for consistency
+        if r['type'] == 'Clean': 
+            r['type'] = 'Partial'
+        if r['type'] == 'Noisy': 
+            r['type'] = 'Noise'
+            
+    return rows
+
+def aggregate_rows(rows):
+    """Group rows by (type, ps, pn, method) and calculate mean/std stats."""
+    keys = ['type', 'ps', 'pn', 'method']
+    metrics = ['accuracy', 'precision', 'recall', 'f1', 'time', 'domains']
+    
+    groups = defaultdict(list)
+    for r in rows:
+        key = (r['type'], strip_dot(r['ps']), strip_dot(r['pn']), r['method'])
+        groups[key].append(r)
+        
+    agg_results = []
+    for key, g_rows in groups.items():
+        res = {
+            'type': key[0],
+            'ps': key[1],
+            'pn': key[2],
+            'method': key[3]
+        }
+        
+        for m in metrics:
+            vals = [float(r[m]) for r in g_rows]
+            mean = sum(vals) / len(vals)
+            if len(vals) > 1:
+                variance = sum((x - mean) ** 2 for x in vals) / (len(vals) - 1)
+                std = variance ** 0.5
+            else:
+                std = 0.0
+            res[m] = (mean, std)
+            
+        agg_results.append(res)
+        
+    return agg_results
+
+def fmt_metric(stats, digits=4):
+    """Format metric as just mean (as requested)."""
+    mean, std = stats
+    return f"{mean:.{digits}f}"
+
+def fmt_dom_stats(stats):
+    r"""Format domain as mean \pm std where std is an integer."""
+    mean, std = stats
+    m_int = int(round(mean))
+    s_int = int(round(std))
+    if s_int == 0:
+        return f"{m_int:,}"
+    return f"${m_int:,} \\pm {s_int}$"
 
 # ---------------------------------------------------------------------------
 # Table body builders
 # ---------------------------------------------------------------------------
 
-def build_seandroid_body(rows):
+def build_seandroid_body(all_rows):
     """
     Tabular body for tab:results-seandroid.
-    Partial: one GC row per ps value (pn=0.0), sorted by ps.
-    Noise:   one MDL row per pn value (ps=0.1), sorted by pn.
+    Aggregates multiple runs per instance.
     """
+    rows = aggregate_rows(all_rows)
     lines = []
 
     partial_rows = sorted([r for r in rows if r['type'] == 'Partial'],
-                         key=lambda r: float(strip_dot(r['ps'])))
+                         key=lambda r: float(r['ps']))
     noise_rows   = sorted([r for r in rows if r['type'] == 'Noise'],
-                         key=lambda r: (float(strip_dot(r['ps'])), float(strip_dot(r['pn']))))
+                         key=lambda r: (float(r['ps']), float(r['pn'])))
 
-    def data_cols(r):
-        return (strip_dot(r['ps']), strip_dot(r['pn']), r['method'],
-                fmt(r['accuracy']), fmt(r['precision']),
-                fmt(r['recall']),   fmt(r['f1']),
-                fmt_int(r['domains']), fmt(r['time'], 2))
+    def row_to_cols(r):
+        return (r['ps'], r['pn'], r['method'],
+                fmt_metric(r['accuracy']), fmt_metric(r['precision']),
+                fmt_metric(r['recall']),   fmt_metric(r['f1']),
+                fmt_dom_stats(r['domains']), fmt_metric(r['time'], 2))
 
     # Partial block
     for i, r in enumerate(partial_rows):
-        ps, pn, method, acc, prec, rec, f1, dom, t = data_cols(r)
+        ps, pn, method, acc, prec, rec, f1, dom, t = row_to_cols(r)
         type_col = f"\\multirow{{{len(partial_rows)}}}{{*}}{{Partial}}" if i == 0 else ""
         lines.append(f"        {type_col} & {ps} & {pn} & {method} "
                      f"& {acc} & {prec} & {rec} & {f1} & {dom} & {t} \\\\")
@@ -68,7 +127,7 @@ def build_seandroid_body(rows):
 
     # Noise block
     for i, r in enumerate(noise_rows):
-        ps, pn, method, acc, prec, rec, f1, dom, t = data_cols(r)
+        ps, pn, method, acc, prec, rec, f1, dom, t = row_to_cols(r)
         type_col = f"\\multirow{{{len(noise_rows)}}}{{*}}{{Noise}}" if i == 0 else ""
         lines.append(f"        {type_col} & {ps} & {pn} & {method} "
                      f"& {acc} & {prec} & {rec} & {f1} & {dom} & {t} \\\\")
@@ -76,12 +135,12 @@ def build_seandroid_body(rows):
     return "\n".join(lines)
 
 
-def build_synthetic_body(rows):
+def build_synthetic_body(all_rows):
     """
     Tabular body for tab:results-synthetic.
-    Partial: 3 methods (GC, DT, MLP) per (ps, pn=0.0), separated by cmidrule.
-    Noise:   3 methods (MDL, DT, MLP) per (ps, pn),    separated by cmidrule.
+    Aggregates multiple runs per instance.
     """
+    rows = aggregate_rows(all_rows)
     lines = []
     METHOD_ORDER = {'Partial': ['GC', 'DT', 'MLP'], 'Noise': ['MDL', 'DT', 'MLP']}
 
@@ -89,15 +148,15 @@ def build_synthetic_body(rows):
         scen_rows = [r for r in rows if r['type'] == scenario]
         morder    = METHOD_ORDER[scenario]
 
-        # Collect ordered (ps, pn) groups
+        # Group by (ps, pn)
         groups, order = defaultdict(list), []
         for r in scen_rows:
-            key = (strip_dot(r['ps']), strip_dot(r['pn']))
+            key = (r['ps'], r['pn'])
             if key not in groups:
                 order.append(key)
             groups[key].append(r)
 
-        # Sort each group by preferred method order
+        # Sort each group by method order
         for key in order:
             groups[key].sort(key=lambda r: morder.index(r['method'])
                              if r['method'] in morder else 99)
@@ -110,19 +169,20 @@ def build_synthetic_body(rows):
             n_in_group = len(group)
 
             for row_idx, r in enumerate(group):
-                acc    = fmt(r['accuracy']);   prec = fmt(r['precision'])
-                rec    = fmt(r['recall']);     f1   = fmt(r['f1'])
-                dom    = fmt_int(r['domains']); t   = fmt(r['time'], 2)
+                acc    = fmt_metric(r['accuracy']);   prec = fmt_metric(r['precision'])
+                rec    = fmt_metric(r['recall']);     f1   = fmt_metric(r['f1'])
+                dom    = fmt_dom_stats(r['domains'])
+                t      = fmt_metric(r['time'], 2)
                 method = r['method']
 
-                # Type column: big multirow for first row of entire scenario
+                # Type column: multirow for entire scenario
                 if first_of_scenario and row_idx == 0:
                     col_type = f"\\multirow{{{n_total}}}{{*}}{{{scenario}}}"
                     first_of_scenario = False
                 else:
                     col_type = ""
 
-                # ps / pn columns: multirow for first row of each (ps, pn) group
+                # ps / pn columns: multirow for group
                 col_ps = f"\\multirow{{{n_in_group}}}{{*}}{{{ps}}}" if row_idx == 0 else ""
                 col_pn = f"\\multirow{{{n_in_group}}}{{*}}{{{pn}}}" if row_idx == 0 else ""
 
@@ -134,37 +194,34 @@ def build_synthetic_body(rows):
                     lines.append(f"         &  &  & {method} "
                                  f"& {acc} & {prec} & {rec} & {f1} & {dom} & {t} \\\\")
 
-            # Separator between (ps, pn) groups, not after the last
             if g_idx < len(order) - 1:
                 lines.append("         \\cmidrule{2-10}")
 
-        # Separator between Partial and Noise
         if scenario == 'Partial':
             lines.append("        \\midrule")
 
     return "\n".join(lines)
 
 # ---------------------------------------------------------------------------
-# Document generator  (same pattern as visual_skewness_tikzpicture.py)
+# Document generator
 # ---------------------------------------------------------------------------
 
 def generate_tex(rows_sea, rows_syn):
-    """Build the full TeX document string with top/bottom placement and labels."""
+    """Build the full TeX document string."""
     lines = []
 
-    # ── Preamble ──
     lines.append(r'\documentclass{article}')
     lines.append(r'\usepackage{booktabs, multirow, array, caption, graphicx}')
-    lines.append(r'\usepackage[margin=1in]{geometry}') # Ensures tables fit on page
+    lines.append(r'\usepackage[margin=1in]{geometry}')
     lines.append(r'\begin{document}')
     lines.append(r'')
 
-    # ── Table 1: SEAndroid (Top) ──
-    lines.append(r'\begin{table}[t]')
+    # ── Table 1: SEAndroid ──
+    lines.append(r'\begin{table}[ht]')
     lines.append(r'    \centering')
     lines.append(r'    \caption{SEAndroid Dataset Results}')
     lines.append(r'    \label{tab:results-seandroid}')
-    lines.append(r'    \resizebox{\textwidth}{!}{%') # Optional: scales table to fit width
+    lines.append(r'    \resizebox{\textwidth}{!}{%')
     lines.append(r'    \begin{tabular}{@{}ccc|lccccccc@{}}')
     lines.append(r'        \toprule')
     lines.append(r'        \textbf{Type} & \textbf{$p_s$} & \textbf{$p_n$}'
@@ -178,15 +235,15 @@ def generate_tex(rows_sea, rows_syn):
     lines.append(r'\end{table}')
     
     lines.append(r'')
-    lines.append(r'\vfill') # Pushes Table 2 to the bottom
+    lines.append(r'\newpage') # Ensure separation and visibility
     lines.append(r'')
 
-    # ── Table 2: Synthetic (Bottom) ──
-    lines.append(r'\begin{table}[b]')
+    # ── Table 2: Synthetic ──
+    lines.append(r'\begin{table}[ht]')
     lines.append(r'    \centering')
     lines.append(r'    \caption{Synthetic Dataset Results}')
     lines.append(r'    \label{tab:results-synthetic}')
-    lines.append(r'    \resizebox{\textwidth}{!}{%') # Optional: scales table to fit width
+    lines.append(r'    \resizebox{\textwidth}{!}{%')
     lines.append(r'    \begin{tabular}{@{}ccc|lccccccc@{}}')
     lines.append(r'        \toprule')
     lines.append(r'        \textbf{Type} & \textbf{$p_s$} & \textbf{$p_n$}'

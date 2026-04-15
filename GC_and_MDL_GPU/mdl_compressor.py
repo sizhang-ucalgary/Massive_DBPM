@@ -53,6 +53,28 @@ def to_cpu(arr):
     if hasattr(arr, 'get'): return arr.get()
     return np.asarray(arr)
 
+def evaluate_labels(D_is1, D_spec, labels, num_groups, xp):
+    """Computes total cost (data + model) on GPU/CPU."""
+    n, k = labels.shape[0], D_is1.shape[0]
+    membership = xp.zeros((n, num_groups), dtype=xp.float32)
+    membership[xp.arange(n), labels] = 1.0
+    
+    W_grant = xp.zeros((k, num_groups, num_groups), dtype=xp.float32)
+    W_specified = xp.zeros((k, num_groups, num_groups), dtype=xp.float32)
+    
+    chunk_size = 2000
+    for row_start in range(0, n, chunk_size):
+        row_end = min(row_start + chunk_size, n)
+        mc = membership[row_start:row_end]
+        for a in range(k):
+            g_sums = D_is1[a, row_start:row_end].astype(xp.float32) @ membership
+            s_sums = D_spec[a, row_start:row_end].astype(xp.float32) @ membership
+            W_grant[a] += mc.T @ g_sums
+            W_specified[a] += mc.T @ s_sums
+    
+    cost = get_entropy_wildcard(W_grant, W_specified, xp)
+    return cost + get_model_cost(n, k, num_groups), cost
+
 # =============================================================================
 # 2. IMPROVED BIT-PACKING WITH PER-ACTION SEPARATION
 # =============================================================================
@@ -210,12 +232,37 @@ void compute_pairwise_hamming(const int n_samples, const int k, const int n, con
 '''
 
 # =============================================================================
-# 4. CORE COMPRESSOR LOGIC (FIXED)
+# 4. CORE COMPRESSOR LOGIC (MDL-Classic-Precise)
 # =============================================================================
+
+def _compute_data_cost(D_is1, D_spec, labels, num_groups, xp, chunk_size=2000):
+    """Compute data cost for a given labeling."""
+    n = len(labels)
+    k = D_is1.shape[0]
+    membership = xp.zeros((n, num_groups), dtype=xp.float32)
+    membership[xp.arange(n), labels] = 1.0
+    
+    W_grant     = xp.zeros((k, num_groups, num_groups), dtype=xp.float32)
+    W_specified = xp.zeros((k, num_groups, num_groups), dtype=xp.float32)
+    
+    for row_start in range(0, n, chunk_size):
+        row_end = min(row_start + chunk_size, n)
+        membership_chunk = membership[row_start:row_end]
+        for a in range(k):
+            grant_sums = D_is1[a][row_start:row_end].astype(xp.float32) @ membership
+            spec_sums  = D_spec[a][row_start:row_end].astype(xp.float32) @ membership
+            W_grant[a]     += membership_chunk.T @ grant_sums
+            W_specified[a] += membership_chunk.T @ spec_sums
+    
+    cost = get_entropy_wildcard(W_grant, W_specified, xp)
+    del membership, W_grant, W_specified
+    return cost
 
 def inner_loop_vectorized(D_is1, D_spec, group_labels, num_groups, xp):
     """
     Batch-refinement of domain assignments to minimize MDL coding cost.
+    Uses MDL-Classic-Precise logic: re-evaluates cost from scratch after
+    moves and rolls back if no objective improvement is achieved.
     
     Iteratively moves entities between groups to reduce the total
     Shannon entropy of the domain-block weight matrices.
@@ -227,17 +274,23 @@ def inner_loop_vectorized(D_is1, D_spec, group_labels, num_groups, xp):
         num_groups:   Number of groups (m).
         xp:           numpy or cupy.
     Returns:
-        (group_labels, data_cost): Refined assignments and final entropy cost.
+        (group_labels, data_cost, num_passes): Refined assignments, final entropy cost, and pass count.
     """
     k = D_is1.shape[0]
     n = len(group_labels)
     chunk_size = 2000  # Keep float32 slices within VRAM limits
     
+    # Track the actual cost across passes (Precise mode)
+    current_total_cost = _compute_data_cost(D_is1, D_spec, group_labels, num_groups, xp) + get_model_cost(n, k, num_groups)
+
     for pass_idx in range(10): 
         # One-hot membership matrix: membership[i, g] = 1 iff entity i is in group g
         membership = xp.zeros((n, num_groups), dtype=xp.float32)
         membership[xp.arange(n), group_labels] = 1.0
         group_sizes = xp.bincount(group_labels, minlength=num_groups).astype(xp.float32)
+        
+        # Snapshot for rollback (Precise mode)
+        old_labels_snapshot = group_labels.copy()
         
         # PASS 1: Compute domain-pair weight matrices W_grant and W_specified
         #   W_grant[a, g1, g2]     = total grant counts for (group g1) -> (group g2)
@@ -283,13 +336,13 @@ def inner_loop_vectorized(D_is1, D_spec, group_labels, num_groups, xp):
             if xp == cp: cp.get_default_memory_pool().free_all_blocks()
         
         # For each entity, compute savings from moving to the best alternative group
-        current_cost = xp.take_along_axis(coding_cost, group_labels[:, None], axis=1).squeeze(1)
-        savings = current_cost[:, None] - coding_cost
+        curr_costs = xp.take_along_axis(coding_cost, group_labels[:, None], axis=1).squeeze(1)
+        savings = curr_costs[:, None] - coding_cost
         
         best_target = xp.argmax(savings, axis=1).astype(xp.int32)
         best_savings = xp.max(savings, axis=1)
         
-        del coding_cost, savings, current_cost
+        del coding_cost, savings, curr_costs
         
         candidates = xp.where(best_savings > 1e-2)[0]
         if len(candidates) == 0: 
@@ -317,23 +370,17 @@ def inner_loop_vectorized(D_is1, D_spec, group_labels, num_groups, xp):
         if xp == cp: cp.get_default_memory_pool().free_all_blocks()
         if moves_applied == 0: break
         
-    # Final data cost calculation with converged assignments
-    membership = xp.zeros((n, num_groups), dtype=xp.float32)
-    membership[xp.arange(n), group_labels] = 1.0
-    W_grant     = xp.zeros((k, num_groups, num_groups), dtype=xp.float32)
-    W_specified = xp.zeros((k, num_groups, num_groups), dtype=xp.float32)
-    for row_start in range(0, n, chunk_size):
-        row_end = min(row_start + chunk_size, n)
-        membership_chunk = membership[row_start:row_end]
-        for a in range(k):
-            grant_sums = D_is1[a][row_start:row_end].astype(xp.float32) @ membership
-            spec_sums  = D_spec[a][row_start:row_end].astype(xp.float32) @ membership
-            W_grant[a]     += membership_chunk.T @ grant_sums
-            W_specified[a] += membership_chunk.T @ spec_sums
-    
-    cost = get_entropy_wildcard(W_grant, W_specified, xp)
-    del membership, W_grant, W_specified
-    return group_labels, cost
+        # [Precise] Re-evaluate cost from scratch and rollback if no improvement
+        actual_total_cost, _ = evaluate_labels(D_is1, D_spec, group_labels, num_groups, xp)
+        if actual_total_cost >= current_total_cost:
+            group_labels[:] = old_labels_snapshot
+            break
+        else:
+            current_total_cost = actual_total_cost
+        
+    # Final data cost calculation
+    cost = current_total_cost - get_model_cost(n, k, num_groups)
+    return group_labels, cost, pass_idx + 1
 
 def split_group_hamming_gpu(allow_masks, deny_masks, group_indices, xp):
     """
@@ -450,11 +497,15 @@ def split_group_hamming(D_all, group_indices, xp):
 def outer_loop_autopart(D_is1, D_spec, xp, 
                         allow_masks=None, deny_masks=None,
                         base_data=None, verbose=True):
-    """Hierarchical Divisive outer loop.
+    """AutoPart-Classic outer loop with separate split/refine commitment checks.
     
-    Repeatedly splits groups via furthest-pair seeding, then refines
-    assignments with inner_loop_vectorized, stopping when MDL cost
-    no longer decreases.
+    At each iteration:
+      1. Splits all groups.
+      2. Checks if the raw split improves MDL cost (commits if yes).
+      3. Runs refinement and checks if that further improves (commits if yes).
+      4. Stops if neither split nor refinement improved.
+    
+    Uses MDL-Classic-Precise as the default algorithm.
     
     Args:
         D_is1:       (k, n, n) grant count tensor.
@@ -465,12 +516,12 @@ def outer_loop_autopart(D_is1, D_spec, xp,
         base_data:   Raw data tensor for CPU fallback splitting (optional).
         verbose:     Print progress.
     Returns:
-        (group_labels, num_groups): Final assignments and domain count.
+        (group_labels, num_groups, num_inner_loops, num_outer_loops):
+            Final assignments, domain count, total refinement passes, and outer iterations.
     """
     k, n, _ = D_is1.shape
     num_groups = 1
     group_labels = xp.zeros(n, dtype=xp.int32)
-    curr_model_cost = get_model_cost(n, k, num_groups)
     
     # Calculate initial data cost (single-group baseline)
     total_grants    = xp.zeros(k, dtype=xp.float64)
@@ -483,9 +534,12 @@ def outer_loop_autopart(D_is1, D_spec, xp,
     del total_grants, total_specified
     if xp == cp: cp.get_default_memory_pool().free_all_blocks()
     
-    curr_total_cost = curr_model_cost + curr_data_cost
+    curr_total_cost = get_model_cost(n, k, 1) + curr_data_cost
+    num_inner_loops = 0
+    num_outer_loops = 0
     
     while num_groups < n:
+        num_outer_loops += 1
         new_labels = group_labels.copy()
         current_groups = xp.unique(group_labels)
         next_id = num_groups
@@ -510,25 +564,38 @@ def outer_loop_autopart(D_is1, D_spec, xp,
         
         if splits_performed == 0: break
         new_num_groups = next_id
-        refined_labels, refined_data_cost = inner_loop_vectorized(
+        
+        improved = False
+        
+        # [Classic] Split Check: commit split if it improves cost
+        split_data_cost = _compute_data_cost(D_is1, D_spec, new_labels, new_num_groups, xp)
+        split_total_cost = get_model_cost(n, k, new_num_groups) + split_data_cost
+        
+        if split_total_cost < curr_total_cost:
+            group_labels = new_labels.copy()
+            num_groups = new_num_groups
+            curr_total_cost = split_total_cost
+            improved = True
+            if verbose: print(f"    - m={num_groups:3d} | Split | Cost: {curr_total_cost:12.2f}")
+        
+        # [Classic] Refinement Check: commit refinement if it further improves
+        refined_labels, refined_data_cost, passes = inner_loop_vectorized(
             D_is1, D_spec, new_labels, new_num_groups, xp
         )
-        new_model_cost = get_model_cost(n, k, new_num_groups)
-        new_total_cost = new_model_cost + refined_data_cost
-        cost_diff = curr_total_cost - new_total_cost
+        num_inner_loops += passes
+        refined_total_cost = get_model_cost(n, k, new_num_groups) + refined_data_cost
         
-        if cost_diff > 0:
-            if verbose: print(f"    - m={new_num_groups:3d} | Cost: {new_total_cost:12.2f} | Gain: {cost_diff:8.2f}")
+        if refined_total_cost < curr_total_cost:
             group_labels = xp.asarray(refined_labels, dtype=xp.int32)
             num_groups = new_num_groups
-            curr_total_cost = new_total_cost
-        else:
-            if verbose: print(f"    - m={new_num_groups:3d} | Stopped (MDL minimum reached)")
-            break
+            curr_total_cost = refined_total_cost
+            improved = True
+            if verbose: print(f"    - m={num_groups:3d} | Refined | Cost: {curr_total_cost:12.2f}")
         
+        if not improved: break
         if xp == cp: cp.get_default_memory_pool().free_all_blocks()
             
-    return group_labels, num_groups
+    return group_labels, num_groups, num_inner_loops, num_outer_loops
 
 # =============================================================================
 # 5. H CONSTRUCTION
@@ -705,11 +772,12 @@ def main():
     print(f"    - Packed into shape: {allow_masks.shape}")
     if xp == cp: cp.get_default_memory_pool().free_all_blocks()
     
-    # 2. Outer Loop
-    print(f"[*] Starting Hierarchical Divisive MDL loop...")
-    final_G, final_m = outer_loop_autopart(D_is1, D_spec, xp, 
-                                           allow_masks, deny_masks,
-                                           verbose=args.verbose)
+    # 2. Outer Loop (MDL-Classic-Precise)
+    print(f"[*] Starting Hierarchical Divisive MDL loop (Classic-Precise)...")
+    final_G, final_m, num_inner, num_outer = outer_loop_autopart(
+        D_is1, D_spec, xp, 
+        allow_masks, deny_masks,
+        verbose=args.verbose)
     
     # 3. Final Summary Construction
     print(f"[*] Constructing final summary H...")

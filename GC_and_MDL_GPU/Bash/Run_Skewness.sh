@@ -47,22 +47,6 @@ echo "----------------------------------------------------"
 echo "[*] Starting Benchmarks ..."
 echo "----------------------------------------------------"
 
-# --- 1. Process Partial Folder ---
-for f in "$DATA_DIR/Partial/partial_policy_"*.npy; do
-    [[ -e "$f" ]] || continue
-    
-    ps=$(echo "$f" | grep -oP 'ps_\K[0-9.]+')
-    alpha=$(echo "$f" | grep -oP 'alpha_\K[0-9.]+')
-    [ -z "$alpha" ] && alpha="1.0"
-    pn="0.0"
-    
-    orig="${f/partial_policy/original_policy}"
-
-    run_benchmark "Partial" "$f" "$orig" "$ps" "$pn" "$alpha" "$GC_SCRIPT" "GC"
-    run_benchmark "Partial" "$f" "$orig" "$ps" "$pn" "$alpha" "$DT_SCRIPT" "DT"
-    run_benchmark "Partial" "$f" "$orig" "$ps" "$pn" "$alpha" "$MLP_SCRIPT" "MLP"
-done
-
 # --- 2. Process Noise Folder ---
 for f in "$DATA_DIR/Noise/noise_policy_"*.npy; do
     [[ -e "$f" ]] || continue
@@ -77,6 +61,22 @@ for f in "$DATA_DIR/Noise/noise_policy_"*.npy; do
     run_benchmark "Noise" "$f" "$orig" "$ps" "$pn" "$alpha" "$MDL_SCRIPT" "MDL"
     run_benchmark "Noise" "$f" "$orig" "$ps" "$pn" "$alpha" "$DT_SCRIPT" "DT"
     run_benchmark "Noise" "$f" "$orig" "$ps" "$pn" "$alpha" "$MLP_SCRIPT" "MLP"
+done
+
+# --- 1. Process Partial Folder ---
+for f in "$DATA_DIR/Partial/partial_policy_"*.npy; do
+    [[ -e "$f" ]] || continue
+    
+    ps=$(echo "$f" | grep -oP 'ps_\K[0-9.]+')
+    alpha=$(echo "$f" | grep -oP 'alpha_\K[0-9.]+')
+    [ -z "$alpha" ] && alpha="1.0"
+    pn="0.0"
+    
+    orig="${f/partial_policy/original_policy}"
+
+    run_benchmark "Partial" "$f" "$orig" "$ps" "$pn" "$alpha" "$GC_SCRIPT" "GC"
+    run_benchmark "Partial" "$f" "$orig" "$ps" "$pn" "$alpha" "$DT_SCRIPT" "DT"
+    run_benchmark "Partial" "$f" "$orig" "$ps" "$pn" "$alpha" "$MLP_SCRIPT" "MLP"
 done
 
 echo "----------------------------------------------------"

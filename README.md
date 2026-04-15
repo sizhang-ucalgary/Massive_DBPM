@@ -131,19 +131,19 @@ Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver.
 
 - **Generation of Benchmarking Instances**:
     ```bash
-    # Usage: python3.10 dataset_generator.py config_dataset.json
+    # Usage: python3 dataset_generator.py config_dataset.json
     # Edit config_dataset.json to specify K, M, N, and PS
     cd GC_vs_MaxSAT
-    python3.10 dataset_generator.py config_dataset.json
+    python3 dataset_generator.py config_dataset.json
     ```
 - **Execution via Test Driver**:
     ```bash
-    # Usage: python3.10 test_driver.py solver_type method input_dir output_dir timeout
+    # Usage: python3 test_driver.py solver_type method input_dir output_dir timeout
     #
     # solver_type: maxsat, sergcp
     # method (MaxSAT): BE, BE_CC, BE_NF, BE_NF_LI, BE_NF_FM, BE_NF_MD, BE_NF_MD_LI
     # method (GC):     RS, LF, SL, RSI, LFI, SLI, CSB, CSD, SLF, GIS
-    python3.10 test_driver.py sergcp LF CODASPY2024_DBPM_Dataset/M10N100 raw_data 300
+    python3 test_driver.py sergcp LF CODASPY2024_DBPM_Dataset/M10N100 raw_data 300
     ```
 - **Results Aggregation**:
     ```bash
@@ -157,10 +157,10 @@ For large-scale sweeps (scalability, noise levels, skewness), use the provided a
     -   **Purpose**: Automates the end-to-end evaluation of the GPU-accelerated miners.
     -   **Workflow**:
         1.  `Generate_*.sh`: Invokes `policy_generator.py` to create batches of `.npy` datasets.
-        2.  `Run_*.sh`: Iterates through datasets, executes miners, and parses output into `.csv` files.
+        2.  `Run_*.sh`: Iterates through datasets, executes miners.
 -   **Benchmarking via SLURM** (`GC_vs_MaxSAT/Slurm/`):
-    -   **Purpose**: Reproduces the comparative analysis for Figure 2 using HPC job scheduling.
-    -   **Execution**: Each subdirectory contains a SLURM script (e.g., `MaxSAT.sh`, `LF.sh`) to execute the `test_driver.py` for a specific configuration across all dataset tiers.
+    -   **Purpose**: Reproduces the comparative analysis for Cactus Plot - GC Pipeline vs. MaxSAT Pipeline using HPC job scheduling.
+    -   **Execution**: Each subdirectory contains a SLURM script (e.g., `MaxSAT`, `LF`) to execute the `test_driver.py` for a specific configuration across all dataset tiers.
     -   **Expected Output**: Method-specific raw results in JSON format, which are then processed by `rawdata_analyzer.py` to generate cactus plot data.
 ---
 

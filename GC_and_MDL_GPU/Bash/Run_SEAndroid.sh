@@ -27,26 +27,6 @@ extract_metrics() {
 
 shopt -s nullglob
 
-# --- 1. Process PARTIAL policies ---
-for partial in "$DATA_DIR"/partial_policy_*.npy; do
-    # Extract parameter: ps (using grep -oP for matching)
-    ps=$(echo "$partial" | grep -oP 'ps_\K[0-9.]+')
-    pn="0.0"
-    
-    # Locate corresponding original file by prefix replacement
-    original="${partial/partial_policy_/original_policy_}"
-    fname=$(basename "$partial")
-    
-    if [ -f "$original" ]; then
-        echo "    [$(date +%T)] Running GC on $fname (ps=$ps)..."
-        raw_output=$(python3 "$GC_SCRIPT" "$partial" "$original")
-        metrics=$(extract_metrics "$raw_output")
-        echo "$fname,Partial,$ps,$pn,GC,$metrics" >> "$CSV_RESULT"
-    else
-        echo "    [!] Warning: Original file not found for $fname"
-    fi
-done
-
 # --- 2. Process NOISE policies ---
 for noise in "$DATA_DIR"/noise_policy_*.npy; do
     # Extract parameters: ps and pn
@@ -57,10 +37,41 @@ for noise in "$DATA_DIR"/noise_policy_*.npy; do
     fname=$(basename "$noise")
     
     if [ -f "$original" ]; then
-        echo "    [$(date +%T)] Running MDL on $fname (ps=$ps, pn=$pn)..."
-        raw_output=$(python3 "$MDL_SCRIPT" "$noise" "$original")
-        metrics=$(extract_metrics "$raw_output")
-        echo "$fname,Noise,$ps,$pn,MDL,$metrics" >> "$CSV_RESULT"
+        echo "    [$(date +%T)] Running MDL on $fname (ps=$ps, pn=$pn, 10 runs)..."
+        
+        for run in {1..10}; do
+            raw=$(python3 "$MDL_SCRIPT" "$noise" "$original" 2>/dev/null)
+            m=$(extract_metrics "$raw")
+            # Print each run result to CSV immediately
+            echo "$fname,Noise,$ps,$pn,MDL,$m" >> "$CSV_RESULT"
+            echo -n "."
+        done
+        echo ""
+    else
+        echo "    [!] Warning: Original file not found for $fname"
+    fi
+done
+
+# --- 1. Process PARTIAL policies ---
+for partial in "$DATA_DIR"/partial_policy_*.npy; do
+    # Extract parameter: ps
+    ps=$(echo "$partial" | grep -oP 'ps_\K[0-9.]+')
+    pn="0.0"
+    
+    original="${partial/partial_policy_/original_policy_}"
+    fname=$(basename "$partial")
+    
+    if [ -f "$original" ]; then
+        echo "    [$(date +%T)] Running GC on $fname (ps=$ps, 10 runs)..."
+        
+        for run in {1..10}; do
+            raw=$(python3 "$GC_SCRIPT" "$partial" "$original" 2>/dev/null)
+            m=$(extract_metrics "$raw")
+            # Print each run result to CSV immediately
+            echo "$fname,Partial,$ps,$pn,GC,$m" >> "$CSV_RESULT"
+            echo -n "."
+        done
+        echo ""
     else
         echo "    [!] Warning: Original file not found for $fname"
     fi
