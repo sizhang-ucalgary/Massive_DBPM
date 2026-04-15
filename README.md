@@ -31,11 +31,13 @@ This repository contains the implementation and experimental evaluation of a hig
 │
 └── GC_vs_MaxSAT/               # CPU-based benchmarking suite
     ├── CODASPY2024_DBPM_Dataset/       # Primary benchmarking dataset
-    ├── Run_GC_MaxSAT.sh                # Automation script for reproduction
-    ├── rawdata_analyzer.py             # Script to aggregate results and generate CSV
+    ├── Slurm/                          # SLURM scripts for HPC job submission
+    ├── config_dataset.json             # Configuration for dataset generation
+    ├── dataset_generator.py            # Script to generate benchmarking instances
+    ├── graph_coloring.py               # CPU-based heuristic GC implementations
+    ├── maxsat_solver.py                # MaxSAT-based baseline implementation
     ├── test_driver.py                  # Experimental comparison driver
-    ├── maxsat_solver.py                # CODASPY2024_DBPM_MaxSAT baseline implementation
-    └── graph_coloring.py               # CPU-based heuristic GC implementations
+    └── rawdata_analyzer.py             # Script to aggregate results into CSV
 ```
 
 ---
@@ -125,17 +127,29 @@ Extract policies from the generated datasets using the GPU-accelerated pipelines
     ```
 
 #### 3. MaxSAT vs. GC Comparison
-Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver. This should be run as an **Interactive Job** on an HPC node to ensure sufficient memory (256GB).
+Benchmarking the CPU-based Graph Coloring heuristics against the MaxSAT solver.
 
-```bash
-# 1. Request an interactive compute node
-salloc --time=5:00:00 --mem=256gb --nodes=1 --ntasks=1 --cpus-per-task=1
-
-# 2. Run the benchmarking suite (handles execution and plot generation)
-cd GC_vs_MaxSAT
-chmod +x Run_GC_MaxSAT.sh
-./Run_GC_MaxSAT.sh
-```
+- **Generation of Benchmarking Instances**:
+    ```bash
+    # Usage: python3.10 dataset_generator.py config_dataset.json
+    # Edit config_dataset.json to specify K, M, N, and PS
+    cd GC_vs_MaxSAT
+    python3.10 dataset_generator.py config_dataset.json
+    ```
+- **Execution via Test Driver**:
+    ```bash
+    # Usage: python3.10 test_driver.py solver_type method input_dir output_dir timeout
+    #
+    # solver_type: maxsat, sergcp
+    # method (MaxSAT): BE, BE_CC, BE_NF, BE_NF_LI, BE_NF_FM, BE_NF_MD, BE_NF_MD_LI
+    # method (GC):     RS, LF, SL, RSI, LFI, SLI, CSB, CSD, SLF, GIS
+    python3.10 test_driver.py sergcp LF CODASPY2024_DBPM_Dataset/M10N100 raw_data 300
+    ```
+- **Results Aggregation**:
+    ```bash
+    # Usage: python3 rawdata_analyzer.py <input_dir> <output_dir> <timeout> <timelimit>
+    python3 rawdata_analyzer.py raw_data output 300 86400
+    ```
 
 #### 4. Batch Experiments (HPC)
 For large-scale sweeps (scalability, noise levels, skewness), use the provided automation scripts:
@@ -144,19 +158,20 @@ For large-scale sweeps (scalability, noise levels, skewness), use the provided a
     -   **Workflow**:
         1.  `Generate_*.sh`: Invokes `policy_generator.py` to create batches of `.npy` datasets.
         2.  `Run_*.sh`: Iterates through datasets, executes miners, and parses output into `.csv` files.
--   **Benchmarking Script** (`GC_vs_MaxSAT/Run_GC_MaxSAT.sh`):
-    -   **Purpose**: Automatically reproduces the comparative analysis for Figure 2.
-    -   **Execution**: Iterates through the `CODASPY2024_DBPM_Dataset`, executes all 11 solver configurations, and invokes `rawdata_analyzer.py`.
-    -   **Expected Output**: Tier-specific raw results in `raw_data/` and consolidated comparison CSVs in `output/` suitable for cactus plot generation.
+-   **Benchmarking via SLURM** (`GC_vs_MaxSAT/Slurm/`):
+    -   **Purpose**: Reproduces the comparative analysis for Figure 2 using HPC job scheduling.
+    -   **Execution**: Each subdirectory contains a SLURM script (e.g., `MaxSAT.sh`, `LF.sh`) to execute the `test_driver.py` for a specific configuration across all dataset tiers.
+    -   **Expected Output**: Method-specific raw results in JSON format, which are then processed by `rawdata_analyzer.py` to generate cactus plot data.
 ---
 
 ## 📖 Citation
 If you use this work in your research, please cite:
 ```bibtex
-@inproceedings{anonymized2026,
-  title={Mining Domain-Based Policies from Massive and Noisy Access Logs},
-  author={Anonymized},
-  booktitle={ACM Conference},
-  year={2026}
+@inproceedings{Zhang2026,
+  author       = {Si Zhang and Philip W. L. Fong},
+  title        = {Mining Domain-Based Policies from Massive and Noisy Access Logs},
+  booktitle    = {Proceedings of {SACMAT}},
+  publisher    = {{ACM}},
+  year         = {2026}
 }
 ```
