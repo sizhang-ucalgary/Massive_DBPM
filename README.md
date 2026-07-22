@@ -167,14 +167,22 @@ For large-scale sweeps (scalability, noise levels, skewness), use the provided a
 ## 📖 Citation
 If you use this work in your research, please cite:
 ```bibtex
-@inproceedings{Zhang2026,
-  author       = {Si Zhang and Philip W. L. Fong},
+@inproceedings{DBLP:conf/sacmat/ZhangF26,
+  author       = {Si Zhang and
+                  Philip W. L. Fong},
+  editor       = {Mahesh Tripunitara and
+                  Adwait Nadkarni and
+                  Cao Thang Bui},
   title        = {Mining Domain-Based Policies from Massive and Noisy Access Logs},
-  booktitle    = {Proceedings of {SACMAT}},
+  booktitle    = {Proceedings of the 31st {ACM} Symposium on Access Control Models and
+                  Technologies, {SACMAT} 2026, Waterloo, ON, Canada, July 8-10, 2026},
   pages        = {2--13},
   publisher    = {{ACM}},
   year         = {2026},
   url          = {https://doi.org/10.1145/3750555.3811887},
-  doi          = {10.1145/3750555.3811887}
+  doi          = {10.1145/3750555.3811887},
+  timestamp    = {Tue, 21 Jul 2026 17:07:49 +0200},
+  biburl       = {https://dblp.org/rec/conf/sacmat/ZhangF26.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
 ```
