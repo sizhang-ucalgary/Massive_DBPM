@@ -180,9 +180,6 @@ If you use this work in your research, please cite:
   publisher    = {{ACM}},
   year         = {2026},
   url          = {https://doi.org/10.1145/3750555.3811887},
-  doi          = {10.1145/3750555.3811887},
-  timestamp    = {Tue, 21 Jul 2026 17:07:49 +0200},
-  biburl       = {https://dblp.org/rec/conf/sacmat/ZhangF26.bib},
-  bibsource    = {dblp computer science bibliography, https://dblp.org}
+  doi          = {10.1145/3750555.3811887}
 }
 ```
