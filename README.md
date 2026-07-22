@@ -171,7 +171,10 @@ If you use this work in your research, please cite:
   author       = {Si Zhang and Philip W. L. Fong},
   title        = {Mining Domain-Based Policies from Massive and Noisy Access Logs},
   booktitle    = {Proceedings of {SACMAT}},
+  pages        = {2--13},
   publisher    = {{ACM}},
-  year         = {2026}
+  year         = {2026},
+  url          = {https://doi.org/10.1145/3750555.3811887},
+  doi          = {10.1145/3750555.3811887}
 }
 ```
